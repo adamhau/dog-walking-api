@@ -75,11 +75,20 @@ def add_dog():
 
 @app.route("/dogs/<dog_id>", methods=["DELETE"]) #DELETE method to remove a dog
 def delete_dog(dog_id):
+    # Delete the dog
     ref = db.reference(f"/dogs/{dog_id}")
     if not ref.get():
         return jsonify({"error": f"Dog {dog_id} not found."}), 404
     ref.delete()
-    return jsonify({"message": f"Dog {dog_id} deleted."}), 200
+
+    # Delete all walks with this dog
+    walks_ref = db.reference('walks')
+    walks = walks_ref.get()
+    if walks:
+        for walk_id, walk in walks.items():
+            if walk.get('dog_id') == dog_id:
+                walks_ref.child(walk_id).delete()
+    return jsonify({'message': f'Dog {dog_id} and related walks deleted'}), 200
 
 @app.route("/dogs/<dog_id>", methods=["PATCH"])
 def patch_dog(dog_id):
@@ -151,11 +160,20 @@ def add_dogwalker():
 
 @app.route("/dogwalkers/<walker_id>", methods=["DELETE"])
 def delete_walker(walker_id):
+    # Delete the walker
     ref = db.reference(f"/dogwalkers/{walker_id}")
     if not ref.get(): #ref.get() returns JSON values at the node or None, so if it returns None...
         return jsonify({"error": f"Walker {walker_id} not found"}), 404
     ref.delete()
-    return jsonify({"message": f"Walker {walker_id} deleted."}), 200
+
+    # Delete all walks with this walker
+    walks_ref = db.reference('walks')
+    walks = walks_ref.get()
+    if walks:
+        for walk_id, walk in walks.items():
+            if walk.get('walker_id') == walker_id:
+                walks_ref.child(walk_id).delete()
+    return jsonify({'message': f'Walker {walker_id} and related walks deleted'}), 200
 
 @app.route("/dogwalkers/<walker_id>", methods=["PATCH"])
 def patch_dogwalker(walker_id):

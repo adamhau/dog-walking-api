@@ -2,6 +2,11 @@
   <div>
     <h2>🐶 Dog List</h2>
 
+    <!-- MESSAGE DISPLAY -->
+    <div v-if="message" class="message-box">
+      {{ message }}
+    </div>
+
     <button @click="showAddForm = !showAddForm">
       {{ showAddForm ? 'Cancel' : 'Add Dog' }}
     </button>
@@ -48,23 +53,34 @@ export default {
       showAddForm: false,
       newDog: { name: '', breed: '', age: '' },
       editDogId: null,
-      editDog: { name: '', breed: '', age: '' }
+      editDog: { name: '', breed: '', age: '' },
+      message: '',  // <-- message state
+      messageTimeoutId: null,  // for clearing message timeout
     };
   },
   methods: {
     fetchDogs() {
       axios.get('http://localhost:5000/dogs')
-        .then(res => this.dogs = res.data)
-        .catch(err => console.error('Error fetching dogs:', err));
+        .then(res => {
+          this.dogs = res.data;
+        })
+        .catch(err => {
+          this.setMessage('Error fetching dogs.');
+          console.error('Error fetching dogs:', err);
+        });
     },
     addDog() {
       axios.post('http://localhost:5000/dogs', this.newDog)
-        .then(() => {
+        .then(res => {
           this.newDog = { name: '', breed: '', age: '' };
           this.showAddForm = false;
           this.fetchDogs();
+          this.setMessage(res.data.message || 'Dog added successfully!');
         })
-        .catch(err => console.error('Error adding dog:', err));
+        .catch(err => {
+          this.setMessage(err.response?.data?.message || 'Error adding dog.');
+          console.error('Error adding dog:', err);
+        });
     },
     startEditing(dog) {
       this.editDogId = dog.id;
@@ -76,16 +92,33 @@ export default {
     },
     updateDog() {
       axios.patch(`http://localhost:5000/dogs/${this.editDogId}`, this.editDog)
-        .then(() => {
+        .then(res => {
           this.cancelEditing();
           this.fetchDogs();
+          this.setMessage(res.data.message || 'Dog updated successfully!');
         })
-        .catch(err => console.error('Error updating dog:', err));
+        .catch(err => {
+          this.setMessage(err.response?.data?.message || 'Error updating dog.');
+          console.error('Error updating dog:', err);
+        });
     },
     deleteDog(id) {
       axios.delete(`http://localhost:5000/dogs/${id}`)
-        .then(() => this.fetchDogs())
-        .catch(err => console.error('Error deleting dog:', err));
+        .then(res => {
+          this.fetchDogs();
+          this.setMessage(res.data.message || 'Dog deleted successfully!');
+        })
+        .catch(err => {
+          this.setMessage(err.response?.data?.message || 'Error deleting dog.');
+          console.error('Error deleting dog:', err);
+        });
+    },
+    setMessage(msg) {
+      this.message = msg;
+      if (this.messageTimeoutId) clearTimeout(this.messageTimeoutId);
+      this.messageTimeoutId = setTimeout(() => {
+        this.message = '';
+      }, 5000);
     }
   },
   mounted() {
@@ -103,5 +136,15 @@ form {
 }
 input {
   margin-right: 0.5rem;
+}
+
+.message-box {
+  margin: 1rem 0;
+  padding: 0.75rem 1rem;
+  border-radius: 5px;
+  background-color: #e0f7fa;
+  color: #006064;
+  font-weight: 600;
+  border: 1px solid #4dd0e1;
 }
 </style>
