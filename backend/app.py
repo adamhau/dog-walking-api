@@ -77,7 +77,9 @@ def add_dog():
 def delete_dog(dog_id):
     # Delete the dog
     ref = db.reference(f"/dogs/{dog_id}")
-    if not ref.get():
+    dog_data = ref.get()
+    dog_name = dog_data.get("name")
+    if not dog_data:
         return jsonify({"error": f"Dog {dog_id} not found."}), 404
     ref.delete()
 
@@ -88,7 +90,7 @@ def delete_dog(dog_id):
         for walk_id, walk in walks.items():
             if walk.get('dog_id') == dog_id:
                 walks_ref.child(walk_id).delete()
-    return jsonify({'message': f'Dog {dog_id} and related walks deleted'}), 200
+    return jsonify({'message': f'Dog "{dog_name}" and related walks deleted'}), 200
 
 @app.route("/dogs/<dog_id>", methods=["PATCH"])
 def patch_dog(dog_id):
@@ -124,18 +126,18 @@ def patch_dog(dog_id):
 @app.route("/dogwalkers", methods=["GET"])
 def get_dogwalkers():
     ref = db.reference("/dogwalkers")
-    dogwalkers = ref.get() or {}
-    return jsonify(list(dogwalkers.values()))
+    dogwalkers = ref.get()
+    if not dogwalkers:
+        return jsonify([]), 200
+    return jsonify(list(dogwalkers.values())), 200
 
 @app.route("/dogwalkers/<walker_id>", methods=["GET"])
 def get_walker_by_id(walker_id):
-        ref = db.reference(f"/dogwalkers/{walker_id}")
-        walker = ref.get()
-
-        if walker:
-            return jsonify(walker), 200
-        else:
-            return jsonify({"error": f"Walker {walker_id} not found."}), 404
+    ref = db.reference(f"/dogwalkers/{walker_id}")
+    dogwalker = ref.get()
+    if not dogwalker:
+        return jsonify({"error": f"Walker {walker_id} not found"}), 404
+    return jsonify(dogwalker), 200
 
 @app.route("/dogwalkers", methods=["POST"])
 def add_dogwalker():
@@ -144,7 +146,6 @@ def add_dogwalker():
     required_fields = ["name", "phone"]
     if not all(field in data for field in required_fields):
         return jsonify({"error": f"Missing required fields: {', '.join(required_fields)}"}), 400
-
 
     ref = db.reference("/dogwalkers")
     ref_child = ref.push()
@@ -162,8 +163,14 @@ def add_dogwalker():
 def delete_walker(walker_id):
     # Delete the walker
     ref = db.reference(f"/dogwalkers/{walker_id}")
-    if not ref.get(): #ref.get() returns JSON values at the node or None, so if it returns None...
+    walker_data = ref.get()
+
+    if not walker_data:
         return jsonify({"error": f"Walker {walker_id} not found"}), 404
+
+    walker_name = walker_data.get("name")
+
+    # Delete walker
     ref.delete()
 
     # Delete all walks with this walker
@@ -173,7 +180,8 @@ def delete_walker(walker_id):
         for walk_id, walk in walks.items():
             if walk.get('walker_id') == walker_id:
                 walks_ref.child(walk_id).delete()
-    return jsonify({'message': f'Walker {walker_id} and related walks deleted'}), 200
+
+    return jsonify({'message': f'Walker "{walker_name}" and related walks deleted'}), 200
 
 @app.route("/dogwalkers/<walker_id>", methods=["PATCH"])
 def patch_dogwalker(walker_id):
@@ -181,25 +189,20 @@ def patch_dogwalker(walker_id):
 
     ref = db.reference(f"/dogwalkers/{walker_id}")
     walker = ref.get()
-
     if not walker:
-        return jsonify({"error": f"Walker {walker_id} not found."}), 404
-    
-    updates = {}
+        return jsonify({"error": f"Walker {walker_id} not found"}), 404
 
-    # Update only the fields provided in the request
-    if "name" in data:
-        updates["name"] = data["name"]
-    if "phone" in data:
-        updates["phone"] = data["phone"]
+    updated = False
+    for field in ["name", "phone"]:
+        if field in data:
+            walker[field] = data[field]
+            updated = True
 
-    if not updates:
-        return jsonify({"error": "No valid fields to update."}), 400
+    if not updated:
+        return jsonify({"error": "No valid fields to update"}), 400
 
-    ref.update(updates)
-    walker_edit = ref.get()
-
-    return jsonify(walker_edit), 200
+    ref.set(walker)
+    return jsonify(walker), 200
 
 #Route for Walks
 
@@ -221,32 +224,49 @@ def get_walk_by_id(walk_id):
 @app.route("/walks/<walk_id>", methods=["DELETE"])
 def delete_walk(walk_id):
     ref = db.reference(f"/walks/{walk_id}")
-    if not ref.get():
-        return jsonify({"error": f"Walk {walk_id} not found."})
+    walk_data = ref.get()
+
+    if not walk_data:
+        return jsonify({"error": f"Walk {walk_id} not found."}), 404
+
+    dog_id = walk_data.get("dog_id")
+    walker_id = walk_data.get("walker_id")
+
+    # Fetch dog name
+    dog_ref = db.reference(f"/dogs/{dog_id}")
+    dog_data = dog_ref.get()
+    dog_name = dog_data.get("name") if dog_data else "Unknown Dog"
+
+    # Fetch walker name
+    walker_ref = db.reference(f"/dogwalkers/{walker_id}")
+    walker_data = walker_ref.get()
+    walker_name = walker_data.get("name") if walker_data else "Unknown Walker"
+
+    # Delete the walk
     ref.delete()
-    return jsonify({"message": f"Walk {walk_id} deleted."}), 200
+    return jsonify({"message": f'Walk with {dog_name} and {walker_name} deleted.'}), 200
 
 @app.route("/walks", methods=["POST"])
 def add_walks():
-    data = request.get_json() #Get JSON data from POST
+    data = request.get_json()
     dog_id = data.get("dog_id")
     walker_id = data.get("walker_id")
     date = data.get("date")
 
-    # Check if dog_id exists
+    # Validate dog_id
     if not validate_dog_id(dog_id):
         return jsonify({"error": f"Dog with ID {dog_id} not found."}), 400
 
-    # Check if walker_id exists
+    # Validate walker_id
     if not validate_walker_id(walker_id):
         return jsonify({"error": f"Walker with ID {walker_id} not found."}), 400
-    
-    # Check if date is valid
+
+    # Validate date
     try:
         datetime.strptime(date, "%Y-%m-%d")
     except (ValueError, TypeError):
         return jsonify({"error": "Date must be in YYYY-MM-DD format."}), 400
-    
+
     ref = db.reference("/walks")
     ref_child = ref.push()
 
@@ -263,26 +283,27 @@ def add_walks():
 @app.route("/walks/<walk_id>", methods=["PATCH"])
 def patch_walks(walk_id):
     data = request.get_json()
-
     ref = db.reference(f"/walks/{walk_id}")
     walk = ref.get()
 
     if not walk:
-        return jsonify({"error": f"Walk {walk_id} not found."}), 400
-    
+        return jsonify({"error": f"Walk {walk_id} not found."}), 404
+
     updates = {}
 
-    #check which data is referenced and if its valid
-    if "dog_id" in data: #check data for key "dog_id"
+    # Validate and update dog_id
+    if "dog_id" in data:
         if not validate_dog_id(data["dog_id"]):
             return jsonify({"error": f"Dog ID {data['dog_id']} not found."}), 400
-        updates["dog_id"] = data["dog_id"] #if valid, update
+        updates["dog_id"] = data["dog_id"]
 
+    # Validate and update walker_id
     if "walker_id" in data:
         if not validate_walker_id(data["walker_id"]):
             return jsonify({"error": f"Walker ID {data['walker_id']} not found."}), 400
         updates["walker_id"] = data["walker_id"]
 
+    # Validate and update date
     if "date" in data:
         try:
             datetime.strptime(data["date"], "%Y-%m-%d")
@@ -293,11 +314,25 @@ def patch_walks(walk_id):
     if not updates:
         return jsonify({"error": "No valid fields to update."}), 400
 
-
     ref.update(updates)
-    walk_edit = ref.get()
+    updated_walk = ref.get()
 
-    return jsonify(walk_edit), 200
+    # Fetch updated dog and walker names
+    dog_id = updated_walk.get("dog_id")
+    walker_id = updated_walk.get("walker_id")
+
+    dog_ref = db.reference(f"/dogs/{dog_id}")
+    dog_data = dog_ref.get()
+    dog_name = dog_data.get("name") if dog_data else "Unknown Dog"
+
+    walker_ref = db.reference(f"/dogwalkers/{walker_id}")
+    walker_data = walker_ref.get()
+    walker_name = walker_data.get("name") if walker_data else "Unknown Walker"
+
+    return jsonify({
+        "walk": updated_walk,
+        "message": f'Walk updated: {dog_name} with {walker_name}.'
+    }), 200
 
 if __name__ == "__main__":
     app.run(debug=True)
