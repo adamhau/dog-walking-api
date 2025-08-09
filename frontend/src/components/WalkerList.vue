@@ -2,6 +2,11 @@
   <div>
     <h2>🚶 Dogwalkers List</h2>
 
+    <!-- MESSAGE DISPLAY -->
+    <div v-if="message" class="message-box">
+      {{ message }}
+    </div>
+
     <button @click="showAddForm = !showAddForm">
       {{ showAddForm ? 'Cancel' : 'Add Walker' }}
     </button>
@@ -46,23 +51,34 @@ export default {
       showAddForm: false,
       newWalker: { name: '', phone: '' },
       editWalkerId: null,
-      editWalker: { name: '', phone: '' }
+      editWalker: { name: '', phone: '' },
+      message: '',          // for user messages
+      messageTimeoutId: null // to clear timeout
     };
   },
   methods: {
     fetchWalkers() {
       axios.get('http://localhost:5000/dogwalkers')
-        .then(res => this.walkers = res.data)
-        .catch(err => console.error('Error fetching walkers:', err));
+        .then(res => {
+          this.walkers = res.data;
+        })
+        .catch(err => {
+          this.setMessage('Error fetching dogwalkers.');
+          console.error('Error fetching dogwalkers:', err);
+        });
     },
     addWalker() {
       axios.post('http://localhost:5000/dogwalkers', this.newWalker)
-        .then(() => {
+        .then(res => {
           this.newWalker = { name: '', phone: '' };
           this.showAddForm = false;
           this.fetchWalkers();
+          this.setMessage(res.data.message || 'Walker added successfully!');
         })
-        .catch(err => console.error('Error adding walker:', err));
+        .catch(err => {
+          this.setMessage(err.response?.data?.message || 'Error adding walker.');
+          console.error('Error adding walker:', err);
+        });
     },
     startEditing(walker) {
       this.editWalkerId = walker.id;
@@ -74,16 +90,33 @@ export default {
     },
     updateWalker() {
       axios.patch(`http://localhost:5000/dogwalkers/${this.editWalkerId}`, this.editWalker)
-        .then(() => {
+        .then(res => {
           this.cancelEditing();
           this.fetchWalkers();
+          this.setMessage(res.data.message || 'Walker updated successfully!');
         })
-        .catch(err => console.error('Error updating walker:', err));
+        .catch(err => {
+          this.setMessage(err.response?.data?.message || 'Error updating walker.');
+          console.error('Error updating walker:', err);
+        });
     },
     deleteWalker(id) {
       axios.delete(`http://localhost:5000/dogwalkers/${id}`)
-        .then(() => this.fetchWalkers())
-        .catch(err => console.error('Error deleting walker:', err));
+        .then(res => {
+          this.fetchWalkers();
+          this.setMessage(res.data.message || 'Walker deleted successfully!');
+        })
+        .catch(err => {
+          this.setMessage(err.response?.data?.message || 'Error deleting walker.');
+          console.error('Error deleting walker:', err);
+        });
+    },
+    setMessage(msg) {
+      this.message = msg;
+      if (this.messageTimeoutId) clearTimeout(this.messageTimeoutId);
+      this.messageTimeoutId = setTimeout(() => {
+        this.message = '';
+      }, 5000);
     }
   },
   mounted() {
@@ -101,5 +134,15 @@ form {
 }
 input {
   margin-right: 0.5rem;
+}
+
+.message-box {
+  margin: 1rem 0;
+  padding: 0.75rem 1rem;
+  border-radius: 5px;
+  background-color: #e0f7fa;
+  color: #006064;
+  font-weight: 600;
+  border: 1px solid #4dd0e1;
 }
 </style>

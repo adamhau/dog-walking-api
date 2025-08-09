@@ -2,6 +2,11 @@
   <div>
     <h2>📅 Walks List</h2>
 
+    <!-- MESSAGE DISPLAY -->
+    <div v-if="message" class="message-box">
+      {{ message }}
+    </div>
+
     <button @click="showAddForm = !showAddForm">
       {{ showAddForm ? 'Cancel' : 'Add Walk' }}
     </button>
@@ -74,22 +79,33 @@ export default {
       showAddForm: false,
       newWalk: { dog_id: '', walker_id: '', date: '' },
       editWalkId: null,
-      editWalk: { dog_id: '', walker_id: '', date: '' }
+      editWalk: { dog_id: '', walker_id: '', date: '' },
+      message: '',            // <-- message state
+      messageTimeoutId: null, // for clearing message timeout
     };
   },
   methods: {
     fetchAll() {
       axios.get('http://localhost:5000/walks')
         .then(res => this.walks = res.data)
-        .catch(err => console.error('Error fetching walks:', err));
+        .catch(err => {
+          this.setMessage('Error fetching walks.');
+          console.error('Error fetching walks:', err);
+        });
 
       axios.get('http://localhost:5000/dogs')
         .then(res => this.dogs = res.data)
-        .catch(err => console.error('Error fetching dogs:', err));
+        .catch(err => {
+          this.setMessage('Error fetching dogs.');
+          console.error('Error fetching dogs:', err);
+        });
 
       axios.get('http://localhost:5000/dogwalkers')
         .then(res => this.walkers = res.data)
-        .catch(err => console.error('Error fetching walkers:', err));
+        .catch(err => {
+          this.setMessage('Error fetching dogwalkers.');
+          console.error('Error fetching dogwalkers:', err);
+        });
     },
     getDogName(id) {
       const dog = this.dogs.find(d => d.id === id);
@@ -101,12 +117,16 @@ export default {
     },
     addWalk() {
       axios.post('http://localhost:5000/walks', this.newWalk)
-        .then(() => {
+        .then(res => {
           this.newWalk = { dog_id: '', walker_id: '', date: '' };
           this.showAddForm = false;
           this.fetchAll();
+          this.setMessage(res.data.message || 'Walk added successfully!');
         })
-        .catch(err => console.error('Error adding walk:', err));
+        .catch(err => {
+          this.setMessage(err.response?.data?.message || 'Error adding walk.');
+          console.error('Error adding walk:', err);
+        });
     },
     startEditing(walk) {
       this.editWalkId = walk.id;
@@ -118,16 +138,33 @@ export default {
     },
     updateWalk() {
       axios.patch(`http://localhost:5000/walks/${this.editWalkId}`, this.editWalk)
-        .then(() => {
+        .then(res => {
           this.cancelEditing();
           this.fetchAll();
+          this.setMessage(res.data.message || 'Walk updated successfully!');
         })
-        .catch(err => console.error('Error updating walk:', err));
+        .catch(err => {
+          this.setMessage(err.response?.data?.message || 'Error updating walk.');
+          console.error('Error updating walk:', err);
+        });
     },
     deleteWalk(id) {
       axios.delete(`http://localhost:5000/walks/${id}`)
-        .then(() => this.fetchAll())
-        .catch(err => console.error('Error deleting walk:', err));
+        .then(res => {
+          this.fetchAll();
+          this.setMessage(res.data.message || 'Walk deleted successfully!');
+        })
+        .catch(err => {
+          this.setMessage(err.response?.data?.message || 'Error deleting walk.');
+          console.error('Error deleting walk:', err);
+        });
+    },
+    setMessage(msg) {
+      this.message = msg;
+      if (this.messageTimeoutId) clearTimeout(this.messageTimeoutId);
+      this.messageTimeoutId = setTimeout(() => {
+        this.message = '';
+      }, 5000);
     }
   },
   mounted() {
@@ -146,5 +183,15 @@ form {
 input,
 select {
   margin-right: 0.5rem;
+}
+
+.message-box {
+  margin: 1rem 0;
+  padding: 0.75rem 1rem;
+  border-radius: 5px;
+  background-color: #e0f7fa;
+  color: #006064;
+  font-weight: 600;
+  border: 1px solid #4dd0e1;
 }
 </style>
