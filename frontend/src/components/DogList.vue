@@ -22,7 +22,7 @@
     <ul v-if="dogs.length">
       <li v-for="dog in dogs" :key="dog.id">
         <span v-if="editDogId !== dog.id">
-          {{ dog.name }} — {{ dog.breed }} — {{ dog.age }} years old
+          {{ dog.name }}, {{ dog.breed }}, {{ dog.age }} years old
           <button @click="startEditing(dog)">Edit</button>
           <button @click="deleteDog(dog.id)">❌</button>
         </span>
@@ -135,7 +135,8 @@ form {
   margin: 0.5rem 0;
 }
 input {
-  margin-right: 0.5rem;
+  margin: 0.25rem;
+  margin-right: 0.25rem;
 }
 
 .message-box {

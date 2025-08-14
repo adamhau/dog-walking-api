@@ -21,7 +21,7 @@
     <ul v-if="walkers.length">
       <li v-for="walker in walkers" :key="walker.id">
         <span v-if="editWalkerId !== walker.id">
-          {{ walker.name }} — {{ walker.phone }}
+          {{ walker.name }}, {{ walker.phone }}
           <button @click="startEditing(walker)">Edit</button>
           <button @click="deleteWalker(walker.id)">❌</button>
         </span>
@@ -127,7 +127,7 @@ export default {
 
 <style scoped>
 button {
-  margin: 0 4px;
+  margin: 4px;
 }
 form {
   margin: 0.5rem 0;

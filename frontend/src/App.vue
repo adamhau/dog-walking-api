@@ -1,4 +1,5 @@
 <template>
+  <h1 class="app-title">Paw🐕Walk</h1>
   <div id="app">
     <nav class="tabs">
       <button 
@@ -10,7 +11,7 @@
       <button 
         :class="{ active: activeTab === 'walks' }" 
         @click="activeTab = 'walks'">📅 Walks</button>
-    </nav>
+    </nav>  
 
     <section class="content">
       <DogList v-if="activeTab === 'dogs'" />
@@ -41,14 +42,6 @@ export default {
 </script>
 
 <style>
-#app {
-  font-family: Avenir, Helvetica, Arial, sans-serif;
-  max-width: 600px;
-  margin: 2rem auto;
-  border: 1px solid #ccc;
-  border-radius: 6px;
-}
-
 .tabs {
   display: flex;
   border-bottom: 1px solid #ccc;
@@ -65,16 +58,16 @@ export default {
   transition: border-color 0.3s ease;
 }
 
-.tabs button:hover {
-  background-color: #f5f5f5;
-}
-
-.tabs button.active {
-  border-color: #42b983;
-  color: #42b983;
-}
-
 .content {
   padding: 1rem;
+}
+
+.app-title {
+  font-family: 'Trebuchet MS', Helvetica, sans-serif;
+  text-align: center;
+  font-size: 2.5rem;
+  font-weight: bold;
+  color: #1abc9c;
+  margin: 1rem 0;
 }
 </style>
