@@ -121,7 +121,7 @@ def patch_dog(dog_id):
     return jsonify(dog_edit), 200
     
 
-#Routes for Dogwalkers
+#Routes for Dogwalkers (functionality almost identical to dogs)
 
 @app.route("/dogwalkers", methods=["GET"])
 def get_dogwalkers():
@@ -276,7 +276,7 @@ def add_walks():
         "walker_id": walker_id,
         "date": date
     }
-
+    #Writes new data to child node
     ref_child.set(new_walk)
     return jsonify(new_walk), 201
 
