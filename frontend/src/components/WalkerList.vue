@@ -135,14 +135,4 @@ form {
 input {
   margin-right: 0.5rem;
 }
-
-.message-box {
-  margin: 1rem 0;
-  padding: 0.75rem 1rem;
-  border-radius: 5px;
-  background-color: #e0f7fa;
-  color: #006064;
-  font-weight: 600;
-  border: 1px solid #4dd0e1;
-}
 </style>

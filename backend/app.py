@@ -40,7 +40,7 @@ def get_dogs():
     dogs = ref.get() or {}
     return jsonify(list(dogs.values()))
 
-@app.route("/dogs/<dog_id>", methods=["GET"]) #GET to receive a specific dog
+@app.route("/dogs/<dog_id>", methods=["GET"]) #GET to receive a specific dog (Made this for Postman testing)
 def get_dog_by_id(dog_id):
     ref = db.reference(f"/dogs/{dog_id}")
     dog = ref.get() #returns dog info or None

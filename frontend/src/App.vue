@@ -1,7 +1,9 @@
 <template>
   <h1 class="app-title">Paw🐕Walk</h1>
+
+  <!-- Main App Container -->
   <div id="app">
-    <nav class="tabs">
+    <nav class="tabs"> <!-- Navigation buttons for tabs (sets active tab for components) -->
       <button 
         :class="{ active: activeTab === 'dogs' }" 
         @click="activeTab = 'dogs'">🐶 Dogs</button>
@@ -13,7 +15,7 @@
         @click="activeTab = 'walks'">📅 Walks</button>
     </nav>  
 
-    <section class="content">
+    <section class="content"> <!-- display component depending on active tab -->
       <DogList v-if="activeTab === 'dogs'" />
       <WalkerList v-if="activeTab === 'walkers'" />
       <WalksList v-if="activeTab === 'walks'" />
@@ -41,6 +43,7 @@ export default {
 }
 </script>
 
+<!-- misc css -->
 <style>
 .tabs {
   display: flex;
